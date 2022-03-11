@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+
+manifest:
+  defaults:
+    remote: zephyrproject-rtos
+
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+
+    - name: gitee
+      url-base: https://gitee.com/fwatch
+
+  # External projects
+  #
+  projects:
+    - name: hal_espressif
+      revision: bcd7565ffa390d5774dc2fbe71a002faa9a7d082
+      path: modules/hal/espressif
+      west-commands: west/west-commands.yml
+      groups:
+        - hal
+
+    - name: tinycrypt
+      revision: 3e9a49d2672ec01435ffbf0d788db6d95ef28de0
+      path: modules/crypto/tinycrypt
+
+    - name: zephyr
+      west-commands: scripts/west-commands.yml
+      revision: main
+
+  self:
+    path: twatch
