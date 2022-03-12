@@ -1,0 +1,6 @@
+menu "twatch"
+
+rsource "drivers/Kconfig"
+rsource "bluetooth/Kconfig"
+
+endmenu
