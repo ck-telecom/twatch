@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#define DT_DRV_COMPAT bosch_bma4xx
+#define DT_DRV_COMPAT bosch_bma423
 
 #include <drivers/i2c.h>
 #include <drivers/gpio.h>
@@ -11,17 +11,17 @@
 #include <logging/log.h>
 
 #include "bma4.h"
-#include "bma421/bma421.h"
+#include "bma423/bma423.h"
 
-#include "bma421.h"
+#include "bma423.h"
 
-LOG_MODULE_REGISTER(BMA421, CONFIG_SENSOR_LOG_LEVEL);
+LOG_MODULE_REGISTER(bma423, CONFIG_SENSOR_LOG_LEVEL);
 
 static int8_t user_i2c_read(uint8_t reg_addr, uint8_t* reg_data, uint32_t length, void* intf_ptr)
 {
 	int8_t ret;
 	const struct device *dev = intf_ptr;
-	const struct bma421_config *cfg = dev->config;
+	const struct bma423_config *cfg = dev->config;
 
 	ret = i2c_burst_read_dt(&cfg->i2c, reg_addr, reg_data, length);
 	if (ret < 0) {
@@ -35,7 +35,7 @@ static int8_t user_i2c_write(uint8_t reg_addr, const uint8_t* reg_data, uint32_t
 {
 	int8_t ret;
 	const struct device *dev = intf_ptr;
-	const struct bma421_config *cfg = dev->config;
+	const struct bma423_config *cfg = dev->config;
 
 	ret = i2c_burst_write_dt(&cfg->i2c, reg_addr, reg_data, length);
 	if (ret < 0) {
@@ -50,11 +50,11 @@ static void user_delay(uint32_t period_us, void* intf_ptr)
 	k_busy_wait(period_us);
 }
 
-static int bma421_sample_fetch(const struct device *dev, enum sensor_channel chan)
+static int bma423_sample_fetch(const struct device *dev, enum sensor_channel chan)
 {
 	int retval = 0;
 
-	struct bma421_data *drv_data = dev->data;
+	struct bma423_data *drv_data = dev->data;
 	struct bma4_dev *bma_dev = &drv_data->bma_dev;
 
 	switch (chan) {
@@ -97,10 +97,10 @@ static int bma421_sample_fetch(const struct device *dev, enum sensor_channel cha
 	return retval;
 }
 
-static void bma421_channel_accel_convert(struct sensor_value *val,
+static void bma423_channel_accel_convert(struct sensor_value *val,
 		int64_t raw_val)
 {
-	raw_val = (raw_val * BMA421_ACC_FULL_RANGE / 4096);
+	raw_val = (raw_val * bma423_ACC_FULL_RANGE / 4096);
 
 	val->val1 = raw_val / 1000000LL;
 	val->val2 = raw_val % 1000000LL;
@@ -112,22 +112,22 @@ static void bma421_channel_accel_convert(struct sensor_value *val,
 	}
 }
 
-static int bma421_channel_get(const struct device *dev,
+static int bma423_channel_get(const struct device *dev,
 		enum sensor_channel chan,
 		struct sensor_value *val)
 {
-	struct bma421_data *drv_data = dev->data;
+	struct bma423_data *drv_data = dev->data;
 
 	if (chan == SENSOR_CHAN_ACCEL_X) {
-		bma421_channel_accel_convert(val, drv_data->accel.x);
+		bma423_channel_accel_convert(val, drv_data->accel.x);
 	} else if (chan == SENSOR_CHAN_ACCEL_Y) {
-		bma421_channel_accel_convert(val, drv_data->accel.y);
+		bma423_channel_accel_convert(val, drv_data->accel.y);
 	} else if (chan == SENSOR_CHAN_ACCEL_Z) {
-		bma421_channel_accel_convert(val, drv_data->accel.z);
+		bma423_channel_accel_convert(val, drv_data->accel.z);
 	} else if (chan == SENSOR_CHAN_ACCEL_XYZ) {
-		bma421_channel_accel_convert(val, drv_data->accel.x);
-		bma421_channel_accel_convert(val + 1, drv_data->accel.y);
-		bma421_channel_accel_convert(val + 2, drv_data->accel.z);
+		bma423_channel_accel_convert(val, drv_data->accel.x);
+		bma423_channel_accel_convert(val + 1, drv_data->accel.y);
+		bma423_channel_accel_convert(val + 2, drv_data->accel.z);
 	} else if (chan == SENSOR_CHAN_DIE_TEMP) {
 		/* temperature_val = 23 + sample / 2 */
 		val->val1 = (drv_data->temperature >> 1) + 23;
@@ -140,13 +140,13 @@ static int bma421_channel_get(const struct device *dev,
 	return 0;
 }
 
-int bma421_attr_set(const struct device *dev,
+int bma423_attr_set(const struct device *dev,
 			enum sensor_channel chan,
 			enum sensor_attribute attr,
 			const struct sensor_value *val)
 {
 	int ret;
-	struct bma421_data *drv_data = dev->data;
+	struct bma423_data *drv_data = dev->data;
 	struct bma4_dev *bma_dev = &drv_data->bma_dev;
 	struct bma4_accel_config accel_conf = { 0 };
 
@@ -189,19 +189,19 @@ int bma421_attr_set(const struct device *dev,
 	return 0;
 }
 
-static const struct sensor_driver_api bma421_driver_api = {
-	.attr_set = bma421_attr_set,
-#if CONFIG_BMA421_TRIGGER
-	.trigger_set = bma421_trigger_set,
+static const struct sensor_driver_api bma423_driver_api = {
+	.attr_set = bma423_attr_set,
+#if CONFIG_bma423_TRIGGER
+	.trigger_set = bma423_trigger_set,
 #endif
-	.sample_fetch = bma421_sample_fetch,
-	.channel_get = bma421_channel_get,
+	.sample_fetch = bma423_sample_fetch,
+	.channel_get = bma423_channel_get,
 };
 
-int bma421_init_driver(const struct device *dev)
+int bma423_init_driver(const struct device *dev)
 {
-	const struct bma421_config *cfg = dev->config;
-	struct bma421_data *drv_data = dev->data;
+	const struct bma423_config *cfg = dev->config;
+	struct bma423_data *drv_data = dev->data;
 	struct bma4_dev *bma_dev = &drv_data->bma_dev;
 	int8_t ret = 0;
 
@@ -227,27 +227,27 @@ int bma421_init_driver(const struct device *dev)
 	}
 	k_busy_wait(5000);
 
-	ret = bma421_init(bma_dev);
+	ret = bma423_init(bma_dev);
 	if (ret != BMA4_OK) {
 		LOG_ERR("BMA4 init error:%d", ret);
 		return ret;
 	}
 
-	ret = bma421_write_config_file(bma_dev);
+	ret = bma423_write_config_file(bma_dev);
 	if (ret != BMA4_OK) {
-		LOG_ERR("bma421_write_config_file failed err %d", ret);
+		LOG_ERR("bma423_write_config_file failed err %d", ret);
 		return ret;
 	}
 
-	ret = bma421_feature_enable(BMA421_STEP_CNTR, 1, bma_dev);
+	ret = bma423_feature_enable(bma423_STEP_CNTR, 1, bma_dev);
 	if (ret != BMA4_OK) {
-		LOG_ERR("bma421_feature_enable failed err %d", ret);
+		LOG_ERR("bma423_feature_enable failed err %d", ret);
 		return ret;
 	}
 
-	ret = bma421_step_detector_enable(0, bma_dev);
+	ret = bma423_step_detector_enable(0, bma_dev);
 	if (ret != BMA4_OK) {
-		LOG_ERR("bma421_step_detector_enable failed err %d", ret);
+		LOG_ERR("bma423_step_detector_enable failed err %d", ret);
 		return ret;
 	}
 
@@ -273,25 +273,25 @@ int bma421_init_driver(const struct device *dev)
 		LOG_ERR("Accel enable failed err %d", ret);
 		return ret;
 	}
-#ifdef CONFIG_BMA421_TRIGGER
-	if (bma421_init_interrupt(dev) < 0) {
+#ifdef CONFIG_BMA423_TRIGGER
+	if (bma423_init_interrupt(dev) < 0) {
 		LOG_DBG("Could not initialize interrupts");
 		return -EIO;
 	}
 #endif
-	LOG_INF("bma421 init done");
+	LOG_INF("bma423 init done");
 	return 0;
 }
 
-#define BMA421_INIT(index)   \
-	static struct bma421_data bma421_data_##index; \
-	static const struct bma421_config bma421_cfg_##index = { \
+#define BMA423_INIT(index)   \
+	static struct bma423_data bma423_data_##index; \
+	static const struct bma423_config bma423_cfg_##index = { \
 		.i2c = I2C_DT_SPEC_INST_GET(index), \
-		COND_CODE_1(CONFIG_BMA421_TRIGGER, \
+		COND_CODE_1(CONFIG_BMA423_TRIGGER, \
                 (.int1_gpio = GPIO_DT_SPEC_INST_GET(index, int1_gpios)), ()) \
 	}; \
-	DEVICE_DT_INST_DEFINE(index, bma421_init_driver, NULL, \
-				&bma421_data_##index, &bma421_cfg_##index, POST_KERNEL, \
-				CONFIG_SENSOR_INIT_PRIORITY, &bma421_driver_api);
+	DEVICE_DT_INST_DEFINE(index, bma423_init_driver, NULL, \
+				&bma423_data_##index, &bma423_cfg_##index, POST_KERNEL, \
+				CONFIG_SENSOR_INIT_PRIORITY, &bma423_driver_api);
 
-DT_INST_FOREACH_STATUS_OKAY(BMA421_INIT)
+DT_INST_FOREACH_STATUS_OKAY(BMA423_INIT)

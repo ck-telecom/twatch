@@ -10,12 +10,12 @@ manifest:
 
     - name: gitee
       url-base: https://gitee.com/fwatch
-
+  #
   # External projects
   #
   projects:
     - name: hal_espressif
-      revision: bcd7565ffa390d5774dc2fbe71a002faa9a7d082
+      revision: bd2e2d8dcdc19defdb1bf6e07fb94f62bc99c925
       path: modules/hal/espressif
       west-commands: west/west-commands.yml
       groups:

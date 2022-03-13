@@ -12,33 +12,33 @@
 #include <logging/log.h>
 #include <stdbool.h>
 
-#include "bma421.h"
-#include "bma421/bma421.h"
+#include "bma423.h"
+#include "bma423/bma423.h"
 
-LOG_MODULE_DECLARE(BMA421, CONFIG_SENSOR_LOG_LEVEL);
+LOG_MODULE_DECLARE(bma423, CONFIG_SENSOR_LOG_LEVEL);
 
-#ifdef CONFIG_BMA421_TRIGGER
-static void bma421_gpio_callback(const struct device *dev,
+#ifdef CONFIG_BMA423_TRIGGER
+static void bma423_gpio_callback(const struct device *dev,
 				 struct gpio_callback *cb, uint32_t pins)
 {
-	struct bma421_data *drv_data = dev->data;
+	struct bma423_data *drv_data = dev->data;
 
 	ARG_UNUSED(pins);
 
-#if defined(CONFIG_BMA421_TRIGGER_OWN_THREAD)
+#if defined(CONFIG_bma423_TRIGGER_OWN_THREAD)
 	k_sem_give(&drv_data->gpio_sem);
-#elif defined(CONFIG_BMA421_TRIGGER_GLOBAL_THREAD)
+#elif defined(CONFIG_bma423_TRIGGER_GLOBAL_THREAD)
 	k_work_submit(&drv_data->work);
 #endif
 }
 
-static void bma421_thread_cb(const struct device *dev)
+static void bma423_thread_cb(const struct device *dev)
 {
-	struct bma421_data *drv_data = dev->data;
+	struct bma423_data *drv_data = dev->data;
 	struct bma4_dev *bma_dev = &drv_data->bma_dev;
 
 	uint16_t int_status = 0xffffu;
-	bma421_read_int_status(&int_status, bma_dev);
+	bma423_read_int_status(&int_status, bma_dev);
 LOG_INF("int status:0x%x", int_status);
 
 	/* check for data ready */
@@ -48,43 +48,43 @@ LOG_INF("int status:0x%x", int_status);
 	}
 
 	/* check for any error */
-	if (((int_status & BMA421_ERROR_INT) == BMA421_ERROR_INT)) {
+	if (((int_status & BMA423_ERROR_INT) == BMA423_ERROR_INT)) {
 		LOG_ERR("Interrupt status 0x%x - Error detected!", int_status);
 		// TODO: Handle error (maybe soft reset ?)
 	}
 }
 
-#ifdef CONFIG_BMA421_TRIGGER_OWN_THREAD
-static void bma421_thread(int dev_ptr, int unused)
+#ifdef CONFIG_BMA423_TRIGGER_OWN_THREAD
+static void bma423_thread(int dev_ptr, int unused)
 {
 	struct device *dev = INT_TO_POINTER(dev_ptr);
-	struct bma421_data *drv_data = dev->data;
+	struct bma423_data *drv_data = dev->data;
 
 	ARG_UNUSED(unused);
 
 	while (1) {
 		k_sem_take(&drv_data->gpio_sem, K_FOREVER);
-		bma421_thread_cb(dev);
+		bma423_thread_cb(dev);
 	}
 }
 #endif
 
-#ifdef CONFIG_BMA421_TRIGGER_GLOBAL_THREAD
-static void bma421_work_cb(struct k_work *work)
+#ifdef CONFIG_BMA423_TRIGGER_GLOBAL_THREAD
+static void bma423_work_cb(struct k_work *work)
 {
-	struct bma421_data *drv_data =
-		CONTAINER_OF(work, struct bma421_data, work);
+	struct bma423_data *drv_data =
+		CONTAINER_OF(work, struct bma423_data, work);
 
-	bma421_thread_cb(drv_data->dev);
+	bma423_thread_cb(drv_data->dev);
 }
 #endif
 
-int bma421_trigger_set(const struct device *dev,
+int bma423_trigger_set(const struct device *dev,
 			const struct sensor_trigger *trig,
 			sensor_trigger_handler_t handler)
 {
-//	const struct bma421_config *cfg = dev->config;
-	struct bma421_data *drv_data = dev->data;
+//	const struct bma423_config *cfg = dev->config;
+	struct bma423_data *drv_data = dev->data;
 	struct bma4_dev *bma_dev = &drv_data->bma_dev;
 	int8_t ret;
 	uint16_t interrupt_mask = 0;
@@ -106,25 +106,25 @@ int bma421_trigger_set(const struct device *dev,
 	}
 
 	// Add Error interrupt in any case.
-	interrupt_mask |= BMA421_ERROR_INT;
+	interrupt_mask |= bma423_ERROR_INT;
 
-	ret = bma421_map_interrupt(BMA4_INTR1_MAP, interrupt_mask, interrupt_enable, bma_dev);
+	ret = bma423_map_interrupt(BMA4_INTR1_MAP, interrupt_mask, interrupt_enable, bma_dev);
 	if (ret) {
 		LOG_ERR("Map interrupt failed err %d", ret);
 		return ret;
 	}
 
 	uint16_t int_status = 0xffffu;
-	bma421_read_int_status(&int_status, bma_dev);
+	bma423_read_int_status(&int_status, bma_dev);
 	LOG_WRN("Reading Interrupt status 0x%x", int_status);
 
 	return 0;
 }
 
-int bma421_init_interrupt(const struct device *dev)
+int bma423_init_interrupt(const struct device *dev)
 {
-	const struct bma421_config *cfg = dev->config;
-	struct bma421_data *drv_data = dev->data;
+	const struct bma423_config *cfg = dev->config;
+	struct bma423_data *drv_data = dev->data;
 	struct bma4_dev *bma_dev = &drv_data->bma_dev;
 	int8_t ret;
 
@@ -139,7 +139,7 @@ int bma421_init_interrupt(const struct device *dev)
 	}
 
 	gpio_init_callback(&drv_data->gpio_cb,
-			bma421_gpio_callback,
+			bma423_gpio_callback,
 			BIT(cfg->int1_gpio.pin));
 
 	ret = gpio_add_callback(cfg->int1_gpio.port, &drv_data->gpio_cb);
@@ -154,7 +154,7 @@ int bma421_init_interrupt(const struct device *dev)
 	}
 
 	uint16_t int_status = 0xffffu;
-	bma421_read_int_status(&int_status, bma_dev);
+	bma423_read_int_status(&int_status, bma_dev);
 	LOG_WRN("Interrupt status 0x%x", int_status);
 
 	struct bma4_int_pin_config pin_config;
@@ -178,20 +178,20 @@ int bma421_init_interrupt(const struct device *dev)
 	uint8_t bma_status = 0xffu;
 	bma4_get_status(&bma_status, bma_dev);
 
-#if defined(CONFIG_BMA421_TRIGGER_OWN_THREAD)
+#if defined(CONFIG_BMA423_TRIGGER_OWN_THREAD)
 	k_sem_init(&drv_data->gpio_sem, 0, UINT_MAX);
 
 	k_thread_create(&drv_data->thread, drv_data->thread_stack,
-			CONFIG_BMA421_THREAD_STACK_SIZE,
-			(k_thread_entry_t)bma421_thread, dev,
-			0, NULL, K_PRIO_COOP(CONFIG_BMA421_THREAD_PRIORITY),
+			CONFIG_bma423_THREAD_STACK_SIZE,
+			(k_thread_entry_t)bma423_thread, dev,
+			0, NULL, K_PRIO_COOP(CONFIG_bma423_THREAD_PRIORITY),
 			0, K_NO_WAIT);
-#elif defined(CONFIG_BMA421_TRIGGER_GLOBAL_THREAD)
-	drv_data->work.handler = bma421_work_cb;
+#elif defined(CONFIG_bma423_TRIGGER_GLOBAL_THREAD)
+	drv_data->work.handler = bma423_work_cb;
 	drv_data->dev = dev;
 #endif
-	LOG_INF("bma421 trigger init done");
+	LOG_INF("bma423 trigger init done");
 	return ret;
 }
 
-#endif
+#endif /* CONFIG_BMA423_TRIGGER */
