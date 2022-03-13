@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2022 Qingsong Gou <gouqs@hotmail.com>
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -10,8 +11,8 @@
 #include <drivers/sensor.h>
 #include <logging/log.h>
 
-#include "bma4.h"
-#include "bma423/bma423.h"
+#include "libbma423/bma4.h"
+#include "libbma423/bma423.h"
 
 #include "bma423.h"
 
@@ -73,25 +74,25 @@ static int bma423_sample_fetch(const struct device *dev, enum sensor_channel cha
 		retval = bma4_get_temperature(&drv_data->temperature, BMA4_DEG, bma_dev);
 		break;
 
+	case SENSOR_CHAN_STEP:
+		retval = bma423_step_counter_output(&drv_data->steps, bma_dev);
+		break;
+
+	case SENSOR_CHAN_ACTIVITY:
+		retval = bma423_activity_output(&drv_data->activity, bma_dev);
+		break;
+
 	case SENSOR_CHAN_ALL:
 		retval = bma4_read_accel_xyz(&drv_data->accel, bma_dev);
 		retval |= bma4_get_temperature(&drv_data->temperature, BMA4_DEG, bma_dev);
- //uint32_t steps = 0;
-// bma4_step_counter_output(&steps, &bma);
-  //int32_t temperature;
-  //bma4_get_temperature(&temperature, BMA4_DEG, &bma);
-  //temperature = temperature / 1000;
-
-  //uint8_t activity = 0;
-  //bma423_activity_output(&activity, &bma);
-		if (retval < 0) {
-			LOG_ERR("bma4_read_accel_xyz error: %d", retval);
-			return retval;
-		}
 		break;
 
 	default:
 		return -ENOTSUP;
+	}
+
+	if (retval < 0) {
+		LOG_ERR("bma423_sample_fetch error: %d", retval);
 	}
 
 	return retval;
@@ -100,7 +101,7 @@ static int bma423_sample_fetch(const struct device *dev, enum sensor_channel cha
 static void bma423_channel_accel_convert(struct sensor_value *val,
 		int64_t raw_val)
 {
-	raw_val = (raw_val * bma423_ACC_FULL_RANGE / 4096);
+	//raw_val = (raw_val * BMA423_ACC_FULL_RANGE / 4096);
 
 	val->val1 = raw_val / 1000000LL;
 	val->val2 = raw_val % 1000000LL;
@@ -132,7 +133,10 @@ static int bma423_channel_get(const struct device *dev,
 		/* temperature_val = 23 + sample / 2 */
 		val->val1 = (drv_data->temperature >> 1) + 23;
 		val->val2 = 500000 * (drv_data->temperature & 1);
-		return 0;
+	} else if (chan == SENSOR_CHAN_STEP) {
+		val->val1 = drv_data->steps;
+	} else if (chan == SENSOR_CHAN_ACTIVITY) {
+		val->val1 = drv_data->activity;
 	} else {
 		return -ENOTSUP;
 	}
@@ -191,7 +195,7 @@ int bma423_attr_set(const struct device *dev,
 
 static const struct sensor_driver_api bma423_driver_api = {
 	.attr_set = bma423_attr_set,
-#if CONFIG_bma423_TRIGGER
+#if CONFIG_BMA423_TRIGGER
 	.trigger_set = bma423_trigger_set,
 #endif
 	.sample_fetch = bma423_sample_fetch,
@@ -239,7 +243,7 @@ int bma423_init_driver(const struct device *dev)
 		return ret;
 	}
 
-	ret = bma423_feature_enable(bma423_STEP_CNTR, 1, bma_dev);
+	ret = bma423_feature_enable(BMA423_STEP_CNTR, 1, bma_dev);
 	if (ret != BMA4_OK) {
 		LOG_ERR("bma423_feature_enable failed err %d", ret);
 		return ret;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Intel Corporation
+ * Copyright (c) 2022 Qingsong Gou <gouqs@hotmail.com>
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -13,7 +13,7 @@
 #include <stdbool.h>
 
 #include "bma423.h"
-#include "bma423/bma423.h"
+#include "libbma423/bma423.h"
 
 LOG_MODULE_DECLARE(bma423, CONFIG_SENSOR_LOG_LEVEL);
 
@@ -106,7 +106,7 @@ int bma423_trigger_set(const struct device *dev,
 	}
 
 	// Add Error interrupt in any case.
-	interrupt_mask |= bma423_ERROR_INT;
+	interrupt_mask |= BMA423_ERROR_INT;
 
 	ret = bma423_map_interrupt(BMA4_INTR1_MAP, interrupt_mask, interrupt_enable, bma_dev);
 	if (ret) {
@@ -182,11 +182,11 @@ int bma423_init_interrupt(const struct device *dev)
 	k_sem_init(&drv_data->gpio_sem, 0, UINT_MAX);
 
 	k_thread_create(&drv_data->thread, drv_data->thread_stack,
-			CONFIG_bma423_THREAD_STACK_SIZE,
+			CONFIG_BMA423_THREAD_STACK_SIZE,
 			(k_thread_entry_t)bma423_thread, dev,
-			0, NULL, K_PRIO_COOP(CONFIG_bma423_THREAD_PRIORITY),
+			0, NULL, K_PRIO_COOP(CONFIG_BMA423_THREAD_PRIORITY),
 			0, K_NO_WAIT);
-#elif defined(CONFIG_bma423_TRIGGER_GLOBAL_THREAD)
+#elif defined(CONFIG_BMA423_TRIGGER_GLOBAL_THREAD)
 	drv_data->work.handler = bma423_work_cb;
 	drv_data->dev = dev;
 #endif

@@ -4,7 +4,7 @@
 
 description:  This is a representation of the BME280 Integrated environmental sensor
 
-compatible: "bosch,bma4xx"
+compatible: "bosch,bma423"
 
 include: i2c-device.yaml
 

@@ -6,7 +6,7 @@
 
 if SENSOR
 
-rsource "bma421/Kconfig"
+rsource "bma423/Kconfig"
 
 # rsource "hrs3300/Kconfig"
 

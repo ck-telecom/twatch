@@ -1,3 +1,3 @@
-[submodule "app/drivers/sensor/bma423/libbma423"]
-	path = app/drivers/sensor/bma423/libbma423
+[submodule "app/drivers/sensor/bma423/zephyr/libbma423"]
+	path = app/drivers/sensor/bma423/zephyr/libbma423
 	url = https://github.com/BoschSensortec/BMA423-Sensor-API
