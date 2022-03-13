@@ -48,13 +48,15 @@ $ west espressif update # update submodules
 Then complete the remaining steps under section 3 and 4. Finally, run `make
 tools`.
 
-### Build and flash Hypnos
+### Build and flash twatch
 
-Run `make` to build everything with the defaults or `make help` to view all the
-options and targets.
+```
+west build -p auto -b twatch_v3 -s app
+```
 
-Then connect your in-circuit programmer and run `make flash`. To install
-without a programmer, see Firmware updates below.
+```
+west flash
+```
 
 ### Build and flash the bootloader
 
