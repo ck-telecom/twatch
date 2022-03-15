@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Add the board
-#list(APPEND BOARD_ROOT ${CMAKE_CURRENT_LIST_DIR}/)
+list(APPEND BOARD_ROOT ${CMAKE_CURRENT_LIST_DIR}/)
 #list(APPEND DTS_ROOT ${CMAKE_CURRENT_LIST_DIR}/)
 
 # Add out-off-tree drivers
@@ -13,6 +13,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(twatch_v3 VERSION 0.0.1)
 
 target_sources(app PRIVATE src/main.c)
+target_sources(app PRIVATE src/bma4xx.c)
 
 execute_process(COMMAND git rev-parse --short HEAD
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

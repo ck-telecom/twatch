@@ -14,8 +14,12 @@
 
 #include "bma4_defs.h"
 
-#define SENSOR_CHAN_STEP (SENSOR_CHAN_PRIV_START + 1)
-#define SENSOR_CHAN_ACTIVITY (SENSOR_CHAN_PRIV_START + 2)
+#define BMA423_TRIG_NO_MOTION           (SENSOR_TRIG_PRIV_START + 1)
+#define BMA423_TRIG_STEP_COUNT          (SENSOR_TRIG_PRIV_START + 2)
+#define BMA423_TRIG_STEP_DETECT         (SENSOR_TRIG_PRIV_START + 3)
+
+#define SENSOR_CHAN_STEP      (SENSOR_CHAN_PRIV_START + 1)
+#define SENSOR_CHAN_ACTIVITY  (SENSOR_CHAN_PRIV_START + 2)
 
 #if CONFIG_bma423_ACC_ODR_1
 #define bma423_ACC_ODR		0x01
@@ -77,9 +81,23 @@ struct bma423_data {
 	struct sensor_trigger data_ready_trigger;
 	sensor_trigger_handler_t data_ready_handler;
 
+	struct sensor_trigger single_tap_trigger;
+	sensor_trigger_handler_t single_tap_handler;
+
+	struct sensor_trigger double_tap_trigger;
+	sensor_trigger_handler_t double_tap_handler;
+
 	struct sensor_trigger any_motion_trigger;
 	sensor_trigger_handler_t any_motion_handler;
 
+	struct sensor_trigger no_motion_trigger;
+	sensor_trigger_handler_t no_motion_handler;
+
+	struct sensor_trigger step_counter_trigger;
+	sensor_trigger_handler_t step_counter_handler;
+
+	struct sensor_trigger step_detection_trigger;
+	sensor_trigger_handler_t step_detection_handler;
 #if defined(CONFIG_BMA423_TRIGGER_OWN_THREAD)
 	K_THREAD_STACK_MEMBER(thread_stack, CONFIG_BMA423_THREAD_STACK_SIZE);
 	struct k_thread thread;

@@ -17,7 +17,6 @@
 
 LOG_MODULE_DECLARE(bma423, CONFIG_SENSOR_LOG_LEVEL);
 
-#ifdef CONFIG_BMA423_TRIGGER
 static void bma423_gpio_callback(const struct device *dev,
 				 struct gpio_callback *cb, uint32_t pins)
 {
@@ -46,7 +45,37 @@ LOG_INF("int status:0x%x", int_status);
 		&& drv_data->data_ready_handler != NULL) {
 		drv_data->data_ready_handler(dev, &drv_data->data_ready_trigger);
 	}
-
+	/* check for single tap */
+	if ((int_status & BMA423_SINGLE_TAP_INT) == BMA423_SINGLE_TAP_INT) {
+		if (drv_data->single_tap_handler) {
+			drv_data->single_tap_handler(dev, &drv_data->any_motion_trigger);
+		}
+	}
+	/* check for double tap */
+	if ((int_status & BMA423_DOUBLE_TAP_INT) == BMA423_DOUBLE_TAP_INT) {
+		if (drv_data->double_tap_handler) {
+			drv_data->double_tap_handler(dev, &drv_data->any_motion_trigger);
+		}
+	}
+	/* check for any motion */
+	if ((int_status & BMA423_ANY_MOT_INT) == BMA423_ANY_MOT_INT) {
+		if (drv_data->any_motion_handler) {
+			drv_data->any_motion_handler(dev, &drv_data->any_motion_trigger);
+		}
+	}
+	/* check for no motion */
+	if ((int_status & BMA423_NO_MOT_INT) == BMA423_NO_MOT_INT) {
+		if (drv_data->no_motion_handler) {
+			drv_data->no_motion_handler(dev, &drv_data->no_motion_trigger);
+		}
+	}
+	/* check for no step detection */
+	if ((int_status & BMA423_STEP_CNTR_INT) == BMA423_STEP_CNTR_INT) {
+		if (drv_data->step_detection_handler) {
+			drv_data->step_detection_handler(dev, &drv_data->step_detection_trigger);
+			LOG_DBG("Interrupt status 0x%x Step detected", int_status);
+		}
+	}
 	/* check for any error */
 	if (((int_status & BMA423_ERROR_INT) == BMA423_ERROR_INT)) {
 		LOG_ERR("Interrupt status 0x%x - Error detected!", int_status);
@@ -87,7 +116,7 @@ int bma423_trigger_set(const struct device *dev,
 	struct bma423_data *drv_data = dev->data;
 	struct bma4_dev *bma_dev = &drv_data->bma_dev;
 	int8_t ret;
-	uint16_t interrupt_mask = 0;
+	static uint16_t interrupt_mask = 0;
 	uint8_t interrupt_enable = BMA4_ENABLE;
 
 	if (handler == NULL) {
@@ -96,9 +125,39 @@ int bma423_trigger_set(const struct device *dev,
 
 	switch (trig->type) {
 	case SENSOR_TRIG_DATA_READY:
-		interrupt_mask = BMA4_DATA_RDY_INT;
+		interrupt_mask |= BMA4_DATA_RDY_INT | BMA4_ACCEL_DATA_RDY_INT;
 		drv_data->data_ready_handler = handler;
 		drv_data->data_ready_trigger = *trig;
+		break;
+	case SENSOR_TRIG_TAP: /* single tap */
+		interrupt_mask |= BMA423_SINGLE_TAP_INT;
+		drv_data->single_tap_handler = handler;
+		drv_data->single_tap_trigger = *trig;
+		break;
+	case SENSOR_TRIG_DOUBLE_TAP:
+		interrupt_mask |= BMA423_DOUBLE_TAP_INT;
+		drv_data->double_tap_handler = handler;
+		drv_data->double_tap_trigger = *trig;
+		break;
+	case SENSOR_TRIG_DELTA: /* Any-Motion Trigger */
+		interrupt_mask |= BMA423_ANY_MOT_INT;
+		drv_data->any_motion_handler = handler;
+		drv_data->any_motion_trigger = *trig;
+		break;
+	case BMA423_TRIG_NO_MOTION:
+		interrupt_mask |= BMA423_NO_MOT_INT;
+		drv_data->no_motion_handler = handler;
+		drv_data->no_motion_trigger = *trig;
+		break;
+	case BMA423_TRIG_STEP_COUNT:
+		interrupt_mask |= BMA423_STEP_CNTR_INT;
+		drv_data->step_counter_handler = handler;
+		drv_data->step_counter_trigger = *trig;
+		break;
+	case BMA423_TRIG_STEP_DETECT:
+		interrupt_mask |= BMA423_STEP_CNTR_INT;
+		drv_data->step_detection_handler = handler;
+		drv_data->step_detection_trigger = *trig;
 		break;
 	default:
 		LOG_ERR("Unsupported sensor trigger");
@@ -113,10 +172,12 @@ int bma423_trigger_set(const struct device *dev,
 		LOG_ERR("Map interrupt failed err %d", ret);
 		return ret;
 	}
-
-	uint16_t int_status = 0xffffu;
-	bma423_read_int_status(&int_status, bma_dev);
-	LOG_WRN("Reading Interrupt status 0x%x", int_status);
+	/* Latch mode means that interrupt flag are only reset once the status is read */
+	ret = bma4_set_interrupt_mode(BMA4_LATCH_MODE, bma_dev);
+	if (ret) {
+		LOG_ERR("bma4_set_interrupt_mode error: %d", ret);
+		return ret;
+	}
 
 	return 0;
 }
@@ -148,7 +209,7 @@ int bma423_init_interrupt(const struct device *dev)
 		return ret;
 	}
 
-	ret = gpio_pin_interrupt_configure_dt(&cfg->int1_gpio, GPIO_INT_EDGE_TO_ACTIVE);
+	ret = gpio_pin_interrupt_configure_dt(&cfg->int1_gpio, GPIO_INT_EDGE_FALLING);
 	if (ret < 0) {
 		return ret;
 	}
@@ -163,17 +224,14 @@ int bma423_init_interrupt(const struct device *dev)
 	pin_config.output_en = BMA4_OUTPUT_ENABLE;
 	pin_config.od = BMA4_OPEN_DRAIN;
 	pin_config.lvl = BMA4_ACTIVE_LOW;
-	pin_config.edge_ctrl = BMA4_EDGE_TRIGGER;
-	/* .edge_ctrl and .input_en are for input interrupt configuration */
+	pin_config.edge_ctrl = BMA4_LEVEL_TRIGGER;
+	pin_config.input_en = BMA4_INPUT_DISABLE;
 
 	ret = bma4_set_int_pin_config(&pin_config, BMA4_INTR1_MAP, bma_dev);
 	if (ret) {
 		LOG_ERR("Set interrupt config err %d", ret);
 		return ret;
 	}
-
-	/* Latch mode means that interrupt flag are only reset once the status is read */
-	bma4_set_interrupt_mode(BMA4_LATCH_MODE, bma_dev);
 
 	uint8_t bma_status = 0xffu;
 	bma4_get_status(&bma_status, bma_dev);
@@ -193,5 +251,3 @@ int bma423_init_interrupt(const struct device *dev)
 	LOG_INF("bma423 trigger init done");
 	return ret;
 }
-
-#endif /* CONFIG_BMA423_TRIGGER */
