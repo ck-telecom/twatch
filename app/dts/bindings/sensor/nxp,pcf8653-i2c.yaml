@@ -1,0 +1,17 @@
+# Copyright (c) 2022, Qingsong Gou <gouqs@hotmail.com>
+# SPDX-License-Identifier: Apache-2.0
+
+description: This is a representation of the pcf8653 RTC IC
+
+compatible: "nxp,pcf8653"
+
+include: i2c-device.yaml
+
+properties:
+    int-gpios:
+      type: phandle-array
+      required: false
+      description: |
+        The INTn pin signals that a new reading is available. The
+        sensor generates an active-low level signal which remains
+        asserted until the data is read.

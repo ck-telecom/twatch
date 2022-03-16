@@ -53,6 +53,12 @@
 		label = "BMA423";
 		int1-gpios = <&gpio0 39 GPIO_ACTIVE_LOW>;
 	};
+	pcf8653: pcf8653@51 {
+		compatible = "nxp,pcf8653";
+		reg = <0x51>;
+		label = "PCF8653";
+		int-gpios = <&gpio0 37 GPIO_ACTIVE_LOW>;
+	};
 };
 
 &i2c1 {
