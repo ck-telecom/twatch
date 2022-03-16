@@ -24,9 +24,9 @@ static void bma423_gpio_callback(const struct device *dev,
 
 	ARG_UNUSED(pins);
 
-#if defined(CONFIG_bma423_TRIGGER_OWN_THREAD)
+#if defined(CONFIG_BMA423_TRIGGER_OWN_THREAD)
 	k_sem_give(&drv_data->gpio_sem);
-#elif defined(CONFIG_bma423_TRIGGER_GLOBAL_THREAD)
+#elif defined(CONFIG_BMA423_TRIGGER_GLOBAL_THREAD)
 	k_work_submit(&drv_data->work);
 #endif
 }
