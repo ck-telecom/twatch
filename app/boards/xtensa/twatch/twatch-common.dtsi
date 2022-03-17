@@ -51,13 +51,13 @@
 		compatible = "bosch,bma423";
 		reg = <0x19>;
 		label = "BMA423";
-		int1-gpios = <&gpio0 39 GPIO_ACTIVE_LOW>;
+		int1-gpios = <&gpio1 39 GPIO_ACTIVE_LOW>;
 	};
 	pcf8653: pcf8653@51 {
 		compatible = "nxp,pcf8653";
 		reg = <0x51>;
 		label = "PCF8653";
-		int-gpios = <&gpio0 37 GPIO_ACTIVE_LOW>;
+		int-gpios = <&gpio1 37 GPIO_ACTIVE_LOW>;
 	};
 };
 
@@ -71,7 +71,7 @@
 		compatible = "focaltech,ft5336";
 		reg = <0x38>;
 		label = "FT5336";
-		int-gpios = <&gpio0 38 GPIO_ACTIVE_LOW>;
+		int-gpios = <&gpio1 38 GPIO_ACTIVE_LOW>;
 	};
 };
 
