@@ -69,6 +69,7 @@
 #define bma423_THREAD_STACKSIZE_UNIT    1024
 
 struct bma423_data {
+	const struct device *dev;
 	struct bma4_accel accel;
 	int32_t temperature;
 	uint32_t steps;
@@ -104,7 +105,6 @@ struct bma423_data {
 	struct k_sem gpio_sem;
 #elif defined(CONFIG_BMA423_TRIGGER_GLOBAL_THREAD)
 	struct k_work work;
-	const struct device *dev;
 #endif
 
 #endif /* CONFIG_BMA423_TRIGGER */

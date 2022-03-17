@@ -20,7 +20,7 @@ LOG_MODULE_DECLARE(bma423, CONFIG_SENSOR_LOG_LEVEL);
 static void bma423_gpio_callback(const struct device *dev,
 				 struct gpio_callback *cb, uint32_t pins)
 {
-	struct bma423_data *drv_data = dev->data;
+	struct bma423_data *drv_data = CONTAINER_OF(cb, struct bma423_data, gpio_cb);
 
 	ARG_UNUSED(pins);
 
@@ -37,8 +37,14 @@ static void bma423_thread_cb(const struct device *dev)
 	struct bma4_dev *bma_dev = &drv_data->bma_dev;
 
 	uint16_t int_status = 0xffffu;
-	bma423_read_int_status(&int_status, bma_dev);
-LOG_INF("int status:0x%x", int_status);
+	int ret = 0;
+
+	ret = bma423_read_int_status(&int_status, bma_dev);
+	if (ret) {
+		LOG_ERR("read int status error: %d", ret);
+		return;
+	}
+	LOG_DBG("int status:0x%x", int_status);
 
 	/* check for data ready */
 	if (((int_status & BMA4_ACCEL_DATA_RDY_INT) == BMA4_ACCEL_DATA_RDY_INT)
@@ -112,7 +118,6 @@ int bma423_trigger_set(const struct device *dev,
 			const struct sensor_trigger *trig,
 			sensor_trigger_handler_t handler)
 {
-//	const struct bma423_config *cfg = dev->config;
 	struct bma423_data *drv_data = dev->data;
 	struct bma4_dev *bma_dev = &drv_data->bma_dev;
 	int8_t ret;
@@ -214,15 +219,11 @@ int bma423_init_interrupt(const struct device *dev)
 		return ret;
 	}
 
-	uint16_t int_status = 0xffffu;
-	bma423_read_int_status(&int_status, bma_dev);
-	LOG_WRN("Interrupt status 0x%x", int_status);
-
 	struct bma4_int_pin_config pin_config;
 	bma4_get_int_pin_config(&pin_config, BMA4_INTR1_MAP, bma_dev);
 
 	pin_config.output_en = BMA4_OUTPUT_ENABLE;
-	pin_config.od = BMA4_OPEN_DRAIN;
+	pin_config.od = BMA4_PUSH_PULL;
 	pin_config.lvl = BMA4_ACTIVE_LOW;
 	pin_config.edge_ctrl = BMA4_LEVEL_TRIGGER;
 	pin_config.input_en = BMA4_INPUT_DISABLE;
