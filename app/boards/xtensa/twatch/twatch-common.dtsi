@@ -59,6 +59,12 @@
 		label = "PCF8653";
 		int-gpios = <&gpio1 37 GPIO_ACTIVE_LOW>;
 	};
+	axp202: axp202@35 {
+		compatible = "xpowers,axp202";
+		reg = <0x35>;
+		label = "AXP202";
+		int-gpios = <&gpio1 35 GPIO_ACTIVE_LOW>;
+	};
 };
 
 &i2c1 {
