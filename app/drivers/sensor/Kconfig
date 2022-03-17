@@ -8,6 +8,6 @@ if SENSOR
 
 rsource "bma423/Kconfig"
 
-# rsource "hrs3300/Kconfig"
+rsource "pcf8653/Kconfig"
 
 endif # SENSOR
