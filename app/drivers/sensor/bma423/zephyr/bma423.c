@@ -57,9 +57,7 @@ static int bma423_sample_fetch(const struct device *dev, enum sensor_channel cha
 
 	struct bma423_data *drv_data = dev->data;
 	struct bma4_dev *bma_dev = &drv_data->bma_dev;
-uint16_t int_status = 0xffffu;
-bma423_read_int_status(&int_status, bma_dev);
-LOG_INF("int status:0x%x", int_status);
+
 	switch (chan) {
 	case SENSOR_CHAN_ACCEL_X:
 	case SENSOR_CHAN_ACCEL_Y:
@@ -156,6 +154,8 @@ int bma423_attr_set(const struct device *dev,
 	struct bma4_dev *bma_dev = &drv_data->bma_dev;
 	struct bma4_accel_config accel_conf = { 0 };
 	struct bma423_any_no_mot_config no_mot_config = { 0 };
+	struct bma423_any_no_mot_config any_mot_config = { 0 };
+
 	if (chan != SENSOR_CHAN_ACCEL_XYZ) {
 		return -ENOTSUP;
 	}
@@ -200,6 +200,37 @@ int bma423_attr_set(const struct device *dev,
 		}
 		break;
 
+	case SENSOR_ATTR_FEATURE_MASK: {
+		uint8_t feature = val->val1;
+		uint8_t enable = val->val2 ? BMA4_ENABLE : BMA4_DISABLE;
+		ret = bma423_feature_enable(feature, enable, bma_dev);
+		if (ret) {
+			LOG_ERR("bma423_feature_enable error: %d", ret);
+		}
+		break;
+	}
+	case SENSOR_ATTR_NO_MOTION:
+		ret = bma423_set_no_mot_config(&no_mot_config, bma_dev);
+		if (ret) {
+			LOG_ERR("bma423_set_no_mot_config error %d", ret);
+		}
+		break;
+
+	case SENSOR_ATTR_ANY_MOTION:
+		ret = bma423_set_any_mot_config(&any_mot_config, bma_dev);
+		if (ret) {
+			LOG_ERR("bma423_set_any_mot_config error %d", ret);
+		}
+		break;
+
+	case SENSOR_ATTR_FIFO_LENGTH: {
+		uint16_t fifo_wm = val->val1;
+		ret = bma4_set_fifo_wm(&fifo_wm, bma_dev);
+		if (ret) {
+			LOG_ERR("bma4_set_fifo_wm error %d", ret);
+		}
+		break;
+	}
 	default:
 		break;
     }
@@ -228,6 +259,8 @@ int bma423_init_driver(const struct device *dev)
 		return -ENODEV;
 	}
 
+	drv_data->dev = dev;
+
 	memset(bma_dev, 0, sizeof(struct bma4_dev));
 
 	bma_dev->intf = BMA4_I2C_INTF;
@@ -248,6 +281,12 @@ int bma423_init_driver(const struct device *dev)
 	ret = bma423_init(bma_dev);
 	if (ret != BMA4_OK) {
 		LOG_ERR("BMA4 init error:%d", ret);
+		return ret;
+	}
+
+	ret = bma4_set_advance_power_save(BMA4_DISABLE, bma_dev);
+	if (ret) {
+		LOG_ERR("cannot activate power save state err %d", ret);
 		return ret;
 	}
 
@@ -273,35 +312,6 @@ int bma423_init_driver(const struct device *dev)
 		return ret;
 	}
 
-/*
-	ret = bma423_get_no_mot_config(&no_mot_config, bma_dev);
-	if (ret) {
-		LOG_ERR("bma421_get_no_mot_config error %d", ret);
-	}
-	LOG_INF("No Motion config : duration %d threshold %d: axe_en 0x%x",
-			no_mot_config.duration, no_mot_config.threshold, no_mot_config.axes_en);
-
-
-
-	ret = bma423_set_no_mot_config(&no_mot_config, bma_dev);
-	if (ret) {
-		LOG_ERR("bma421_set_no_mot_config error %d", ret);
-	}
-*/
-	struct bma423_any_no_mot_config any_mot_config;
-	ret = bma423_get_any_mot_config(&any_mot_config, bma_dev);
-	if (ret) {
-		LOG_ERR("bma423_get_any_mot_config error %d", ret);
-	}
-	any_mot_config.duration = 4;
-	any_mot_config.threshold = 10;
-	any_mot_config.axes_en = BMA423_EN_ALL_AXIS;
-
-	ret = bma423_set_any_mot_config(&any_mot_config, bma_dev);
-	if (ret) {
-		LOG_ERR("bma423_set_any_mot_config error %d", ret);
-	}
-
 	struct bma4_accel_config accel_conf = { 0 };
 	accel_conf.odr = BMA4_OUTPUT_DATA_RATE_100HZ;
 	accel_conf.range = BMA4_ACCEL_RANGE_2G;
@@ -310,12 +320,6 @@ int bma423_init_driver(const struct device *dev)
 	ret = bma4_set_accel_config(&accel_conf, bma_dev);
 	if (ret != BMA4_OK) {
 		LOG_ERR("Failed to set Acceleration config err %d", ret);
-		return ret;
-	}
-
-	ret = bma4_set_advance_power_save(BMA4_ENABLE, bma_dev);
-	if (ret) {
-		LOG_ERR("cannot activate power save state err %d", ret);
 		return ret;
 	}
 
