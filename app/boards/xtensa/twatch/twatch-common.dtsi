@@ -64,6 +64,34 @@
 		reg = <0x35>;
 		label = "AXP202";
 		int-gpios = <&gpio1 35 GPIO_ACTIVE_LOW>;
+
+		axp202_ldo4: ldo4_reg {
+			label = "ldo4_reg";
+			compatible = "regulator-pmic";
+			voltage-range = <1250000 1300000 1400000 1500000 1600000 1700000 1800000 1900000 2000000 2500000 2700000 2800000 3000000 3100000 3200000 3300000>;
+			num-voltages = <16>;
+			vsel-mask = <0x0f>;
+			vsel-reg = <0x28>;
+			enable-reg = <0x12>;
+			enable-mask = <0x08>;
+			enable-val = <1>;
+			min-uV = <1800000>;
+			max-uV = <3300000>;
+		};
+
+		axp202_ldo2: ldo2_reg {
+			label = "ldo2_reg";
+			compatible = "regulator-pmic";
+			voltage-range = <1800000 1900000 2000000 2100000 2200000 2300000 2400000 2500000 2600000 2700000 2800000 2900000 3000000 3100000 3200000 3300000>;
+			num-voltages = <16>;
+			vsel-mask = <0xf0>;
+			vsel-reg = <0x28>;
+			enable-reg = <0x12>;
+			enable-mask = <0x04>;
+			enable-val = <1>;
+			min-uV = <1800000>;
+			max-uV = <3300000>;
+		};
 	};
 };
 
