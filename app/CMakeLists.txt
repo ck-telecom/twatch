@@ -12,6 +12,8 @@ cmake_minimum_required(VERSION 3.13.1)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(twatch_v3 VERSION 0.0.1)
 
+zephyr_include_directories(include)
+
 target_sources(app PRIVATE src/main.c)
 target_sources(app PRIVATE src/bma4xx.c)
 
