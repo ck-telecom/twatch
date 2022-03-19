@@ -21,6 +21,13 @@ static int pcf8653_sample_fetch(const struct device *dev, enum sensor_channel ch
 	int ret = 0;
 
 	switch (chan) {
+	case SENSOR_CHAN_SEC:
+	case SENSOR_CHAN_MIN:
+	case SENSOR_CHAN_HOUR:
+	case SENSOR_CHAN_WDAY:
+	case SENSOR_CHAN_DAY:
+	case SENSOR_CHAN_MON:
+	case SENSOR_CHAN_YEAR:
 	case SENSOR_CHAN_ALL:
 		ret = i2c_burst_read_dt(&cfg->i2c, PCF8563_SEC_REG, data, sizeof(data));
 		if (ret) {
