@@ -169,6 +169,10 @@
 	status = "okay";
 };
 
+&ledc0 {
+	status = "okay";
+};
+
 &flash0 {
 	status = "okay";
 	partitions {
