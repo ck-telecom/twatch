@@ -1,91 +1,79 @@
-#include <drivers/counter.h>
+#include <drivers/sensor.h>
+#include <time.h>
 
-#define SECOND_DELAY 1000000
-#define MINUTE_DELAY (1000000 * 60)
+#include "tick_timer_service.h"
 
-#define ALARM_CHANNEL_ID 0
+static struct tick_timer_service_data prv_data;
 
-typedef struct TickTimerState {
-    CoreTimer timer; /* must be at the start of the struct! */
-    int onqueue;
-	TimeUnits units;
-	TickHandler handler;
-	struct counter_alarm_cfg alarm_cfg;
-} TickTimerState;
-
-/* TODO: this should probably be per-app.  oh, well */
-static TickTimerState _state = {0};
-
-const struct device *counter_dev;
-int counter_init()
+static void tick_timer_service_cb(uint32_t command, void *data, void *context)
 {
-	struct counter_alarm_cfg alarm_cfg;
+	TickHandler *handler = context;
+	struct tick_timer_service_data *msg = (struct tick_timer_service_data *)data;
 
-
-	if (counter_dev == NULL) {
-		LOG_ERR("Device not found\n");
-		return -ENODEV;
+	if (handler && msg) {
+		handler(msg->tick_time, msg->units_changed);
 	}
-	counter_start(counter_dev);
 }
 
-static void counter_interrupt_cb(const struct device *counter_dev,
-				 uint8_t chan_id, uint32_t ticks,
-				 void *user_data)
+struct sensor_trigger trig = {
+	.type = SENSOR_TRIG_RTC_TIMER,
+	.chan = SENSOR_CHAN_ALL
+};
+
+static void timer_handler(const struct device *dev,
+			  const struct sensor_trigger *trig)
 {
-	struct counter_alarm_cfg *config = user_data;
-        TickTimerState *state = CONTAINER_OF(config, TickTimerState, alarm_cfg);
-        uint32_t now_ticks;
-        uint64_t now_usec;
-        int now_sec;
-        int err;
+	struct tm tm = prv_data.tick_time;
+	struct sensor_value val[7];
 
-        err = counter_get_value(counter_dev, &now_ticks);
-        if (err) {
-                printk("Failed to read counter value (err %d)", err);
-                return;
-        }
+	sensor_sample_fetch(dev);
+	sensor_channel_get(dev, SENSOR_CHAN_ALL, val);
 
-        now_usec = counter_ticks_to_us(counter_dev, now_ticks);
-        now_sec = (int)(now_usec / USEC_PER_SEC);
-
-        printk("!!! Alarm !!!\n");
-        printk("Now: %u\n", now_sec);
-
-        printk("Set alarm in %u sec (%u ticks)\n",
-               (uint32_t)(counter_ticks_to_us(counter_dev,
-                                           config->ticks) / USEC_PER_SEC),
-               config->ticks);
-
-        err = counter_set_channel_alarm(counter_dev, ALARM_CHANNEL_ID,
-                                        user_data);
-        if (err != 0) {
-                printk("Alarm could not be set\n");
-        }
+	if (val[0].val1 != sec) { /* second updated */
+		tm.tm_sec = val[0].val1;
+		units_changed |= SECOND_UNIT;
+	}
+	if (val[1].val1 != min) { /* minute updated */
+		tm.tm_min = val[1].val1;
+		units_changed |= MINUTE_UNIT;
+	}
+	if (val[2].val != hour) { /* hour updated */
+		tm.tm_hour = val[2].val1;
+		units_changed |= HOUR_UNIT;
+	}
+	if (val[0].val1 != day) { /* new day */
+		tm.tm_mday = val[0].val1;
+		units_changed |= DAY_UNIT;
+	}
+	if (val[4].val1 != mon) { /* new month */
+		tm.tm_mon = val[0].val1;
+		units_changed |= MONTH_UNIT;
+	}
+	if (val[5].val1 != year) { /* new year */
+		tm.tm_year = val[0].val1;
+		units_changed |= YEAR_UNIT;
+	}
+	prv_data.tick_time = tm;
+	prv_data.units_changed = units_changed;
+	event_service_post(TICK_EVENT, &prv_data);
 }
 
 void tick_timer_service_subscribe(TimeUnits tick_units, TickHandler handler)
 {
-	TickTimerState *state = &_state;
-	int err;
-
-	if (tick_units & SECOND_UNIT) {
-		state->alarm_cfg.flags = 0;
-		state->alarm_cfg.ticks = counter_us_to_ticks(counter_dev, SECOND_DELAY);
-		state->alarm_cfg.callback = counter_interrupt_cb;
-		state->alarm_cfg.user_data = &alarm_cfg;
-	} else if (tick_units & MINUTE_UNIT) {
-		state->alarm_cfg.flags = 0;
-		state->alarm_cfg.ticks = counter_us_to_ticks(counter_dev, MINUTE_DELAY);
-		state->alarm_cfg.callback = counter_interrupt_cb;
-		state->alarm_cfg.user_data = &alarm_cfg;
-	} else {
-
-	}
-	state->units = tick_units;
-	state->handler = handler;
-	err = counter_set_channel_alarm(counter_dev, ALARM_CHANNEL_ID, &state->alarm_cfg);
-	if (err) {
-
-	}
+	event_service_subscribe_with_context(TICK_EVENT, tick_timer_service_cb, handler);
 }
+
+void tick_timer_service_unsubscribe(void)
+{
+	event_service_unsubscribe(TICK_EVENT);
+}
+
+static int tick_timer_service_init(const struct device *dev)
+{
+	dev = device_get_binding("PCF8653");
+	if (!dev) {
+		return -ENODEV;
+	}
+	sensor_trigger_set(dev, &trig, timer_handler);
+}
+SYS_INIT(tick_timer_service_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY)
