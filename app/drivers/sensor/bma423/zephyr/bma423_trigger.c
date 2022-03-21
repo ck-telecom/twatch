@@ -46,6 +46,11 @@ static void bma423_thread_cb(const struct device *dev)
 	}
 	LOG_DBG("int status:0x%x", int_status);
 
+	/* check for fifo wm */
+	if (((int_status & BMA4_FIFO_WM_INT) == BMA4_FIFO_WM_INT)
+		&& drv_data->fifo_wm_handler != NULL) {
+		drv_data->fifo_wm_handler(dev, &drv_data->fifo_wm_trigger);
+	}
 	/* check for data ready */
 	if (((int_status & BMA4_ACCEL_DATA_RDY_INT) == BMA4_ACCEL_DATA_RDY_INT)
 		&& drv_data->data_ready_handler != NULL) {
@@ -163,6 +168,11 @@ int bma423_trigger_set(const struct device *dev,
 		interrupt_mask |= BMA423_STEP_CNTR_INT;
 		drv_data->step_detection_handler = handler;
 		drv_data->step_detection_trigger = *trig;
+		break;
+	case BMA423_TRIG_FIFO_WM:
+		interrupt_mask |= BMA4_FIFO_WM_INT;
+		drv_data->fifo_wm_handler = handler;
+		drv_data->fifo_wm_trigger = *trig;
 		break;
 	default:
 		LOG_ERR("Unsupported sensor trigger");

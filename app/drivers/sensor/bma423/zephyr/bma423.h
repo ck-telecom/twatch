@@ -17,13 +17,14 @@
 #define BMA423_TRIG_NO_MOTION           (SENSOR_TRIG_PRIV_START + 1)
 #define BMA423_TRIG_STEP_COUNT          (SENSOR_TRIG_PRIV_START + 2)
 #define BMA423_TRIG_STEP_DETECT         (SENSOR_TRIG_PRIV_START + 3)
+#define BMA423_TRIG_FIFO_WM             (SENSOR_TRIG_PRIV_START + 4)
 
 #define SENSOR_CHAN_STEP      (SENSOR_CHAN_PRIV_START + 1)
 #define SENSOR_CHAN_ACTIVITY  (SENSOR_CHAN_PRIV_START + 2)
 
 #define SENSOR_ATTR_NO_MOTION   (SENSOR_ATTR_PRIV_START + 1)
 #define SENSOR_ATTR_ANY_MOTION  (SENSOR_ATTR_PRIV_START + 2)
-#define SENSOR_ATTR_FIFO_LENGTH (SENSOR_ATTR_PRIV_START + 3)
+#define SENSOR_ATTR_FIFO_WM     (SENSOR_ATTR_PRIV_START + 3)
 
 #if CONFIG_bma423_ACC_ODR_1
 #define bma423_ACC_ODR		0x01
@@ -103,6 +104,9 @@ struct bma423_data {
 
 	struct sensor_trigger step_detection_trigger;
 	sensor_trigger_handler_t step_detection_handler;
+
+	struct sensor_trigger fifo_wm_trigger;
+	sensor_trigger_handler_t fifo_wm_handler;
 #if defined(CONFIG_BMA423_TRIGGER_OWN_THREAD)
 	K_THREAD_STACK_MEMBER(thread_stack, CONFIG_BMA423_THREAD_STACK_SIZE);
 	struct k_thread thread;

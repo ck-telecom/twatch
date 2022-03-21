@@ -223,7 +223,7 @@ int bma423_attr_set(const struct device *dev,
 		}
 		break;
 
-	case SENSOR_ATTR_FIFO_LENGTH: {
+	case SENSOR_ATTR_FIFO_WM: {
 		uint16_t fifo_wm = val->val1;
 		ret = bma4_set_fifo_wm(&fifo_wm, bma_dev);
 		if (ret) {
@@ -238,8 +238,97 @@ int bma423_attr_set(const struct device *dev,
 	return 0;
 }
 
+int bma423_attr_get(const struct device *dev,
+		    enum sensor_channel chan,
+		    enum sensor_attribute attr,
+		    struct sensor_value *val)
+{
+	int ret;
+	struct bma423_data *drv_data = dev->data;
+	struct bma4_dev *bma_dev = &drv_data->bma_dev;
+	struct bma4_accel_config accel_conf = { 0 };
+	struct bma423_any_no_mot_config no_mot_config = { 0 };
+	struct bma423_any_no_mot_config any_mot_config = { 0 };
+
+	if (chan != SENSOR_CHAN_ACCEL_XYZ) {
+		return -ENOTSUP;
+	}
+	switch (attr) {
+	case SENSOR_ATTR_SAMPLING_FREQUENCY:
+		ret = bma4_get_accel_config(&accel_conf, bma_dev);
+		if (ret != BMA4_OK) {
+			LOG_ERR("Failed to get Acceleration config err %d", ret);
+			return ret;
+		}
+		accel_conf.odr = val->val1;
+		ret = bma4_set_accel_config(&accel_conf, bma_dev);
+		if (ret != BMA4_OK) {
+			LOG_ERR("Failed to set Acceleration config err %d", ret);
+			return ret;
+		}
+		break;
+
+	case SENSOR_ATTR_FULL_SCALE:
+		ret = bma4_get_accel_config(&accel_conf, bma_dev);
+		if (ret != BMA4_OK) {
+			LOG_ERR("Failed to get Acceleration config err %d", ret);
+			return ret;
+		}
+		val->val1 = accel_conf.range;
+		break;
+
+	case SENSOR_ATTR_SLOPE_TH:
+		ret = bma423_get_no_mot_config(&no_mot_config, bma_dev);
+		if (ret) {
+			LOG_ERR("bma423_get_no_mot_config error %d", ret);
+			return ret;
+		}
+		val->val1 = no_mot_config.duration;
+		val->val2 = no_mot_config.threshold;
+		break;
+
+	case SENSOR_ATTR_FEATURE_MASK: {
+		uint8_t feature = val->val1;
+		uint8_t enable = val->val2 ? BMA4_ENABLE : BMA4_DISABLE;
+		ret = bma423_feature_enable(feature, enable, bma_dev);
+		if (ret) {
+			LOG_ERR("bma423_feature_enable error: %d", ret);
+		}
+		break;
+	}
+	case SENSOR_ATTR_NO_MOTION:
+		ret = bma423_get_no_mot_config(&no_mot_config, bma_dev);
+		if (ret) {
+			LOG_ERR("bma423_set_no_mot_config error %d", ret);
+		}
+		break;
+
+	case SENSOR_ATTR_ANY_MOTION:
+		ret = bma423_set_any_mot_config(&any_mot_config, bma_dev);
+		if (ret) {
+			LOG_ERR("bma423_set_any_mot_config error %d", ret);
+		}
+		break;
+
+	case SENSOR_ATTR_FIFO_WM: {
+		uint16_t fifo_wm = 0;
+		ret = bma4_get_fifo_wm(&fifo_wm, bma_dev);
+		if (ret) {
+			LOG_ERR("bma4_get_fifo_wm error %d", ret);
+		}
+		val->val1 = fifo_wm;
+		break;
+	}
+	default:
+		break;
+    }
+
+	return 0;
+}
+
 static const struct sensor_driver_api bma423_driver_api = {
 	.attr_set = bma423_attr_set,
+	.attr_get = bma423_attr_get,
 #if CONFIG_BMA423_TRIGGER
 	.trigger_set = bma423_trigger_set,
 #endif

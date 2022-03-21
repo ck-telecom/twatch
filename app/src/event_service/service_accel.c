@@ -85,8 +85,7 @@ void accel_data_service_subscribe(uint32_t samples_per_update, AccelDataHandler 
 	struct sensor_value setting;
 	(void)sensor_value_from_double(&setting, (double)samples_per_update);
 
-	//TODO: set sensor attr samples_per_update;
-	sensor_attr_set(dev, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_FIFO_LENGTH, &setting);
+	sensor_attr_set(dev, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_FIFO_WM, &setting);
 	event_service_subscribe_with_context(MSG_TYPE_ACCEL_RAW, accel_data_service_cb, handler);
 }
 
