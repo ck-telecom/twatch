@@ -2,12 +2,12 @@
 
 # SPDX-License-Identifier: Apache-2.0
 
-config HRS3300
-	bool "HRS3300 Pulse Oximeter and Heart Rate Sensor"
+config AXP202
+	bool "AXP202 PMIC"
 	select SENSOR
 	depends on I2C
 
-if HRS3300
+if AXP202
 
 config HRS3300_CMDS
 	bool "Shell commands"
@@ -207,4 +207,4 @@ config HRS3300_SLOT4
 
 endif # HRS3300_MULTI_LED_MODE
 
-endif # HRS3300
+endif # AXP202
