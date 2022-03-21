@@ -78,6 +78,15 @@ static int pcf8653_channel_get(const struct device *dev,
 	case SENSOR_CHAN_YEAR:
 		val->val1 = drv_data->year;
 		break;
+	case SENSOR_CHAN_ALL:
+		val[0].val1 = drv_data->sec;
+		val[1].val1 = drv_data->min;
+		val[2].val1 = drv_data->hour;
+		val[3].val1 = drv_data->day;
+		val[4].val1 = drv_data->wday;
+		val[5].val1 = drv_data->mon;
+		val[6].val1 = drv_data->year;
+		break;
 	default:
 		return -ENOTSUP;
 	}
@@ -89,10 +98,21 @@ int pcf8653_attr_set(const struct device *dev,
 		     enum sensor_attribute attr,
 		     const struct sensor_value *val)
 {
+	if (chan != SENSOR_CHAN_ALL) {
+		return -ENOTSUP;
+	}
+}
+
+int pcf8653_attr_get(const struct device *dev,
+		     enum sensor_channel chan,
+		     enum sensor_attribute attr,
+		     const struct sensor_value *val)
+{
 }
 
 static const struct sensor_driver_api pcf8653_driver_api = {
 	.attr_set = pcf8653_attr_set,
+	.attr_get = pcf8653_attr_get,
 #if CONFIG_PCF8653_TRIGGER
 	.trigger_set = pcf8653_trigger_set,
 #endif
@@ -105,6 +125,8 @@ int pcf8653_init_driver(const struct device *dev)
 	const struct pcf8653_config *cfg = dev->config;
 	struct pcf8653_data *drv_data = dev->data;
 	int ret = 0;
+
+	drv_data->dev = dev;
 
 #if CONFIG_PCF8653_TRIGGER
 	ret = pcf8653_interrupt_init(dev);

@@ -5,6 +5,9 @@
 #include <drivers/gpio.h>
 #include <drivers/sensor.h>
 #include <drivers/i2c.h>
+
+#define SENSOR_TRIG_RTC_TIMER (SENSOR_TRIG_PRIV_START + 1)
+
 //! REG MAP
 #define PCF8563_STAT1_REG       (0x00)
 #define PCF8563_STAT2_REG       (0x01)
@@ -58,6 +61,8 @@ struct pcf8653_config {
 };
 
 struct pcf8653_data {
+	const struct device *dev;
+
 	uint16_t century;
 	uint8_t sec;
 	uint8_t min;
@@ -82,7 +87,7 @@ struct pcf8653_data {
 	struct k_sem gpio_sem;
 #elif defined(CONFIG_PCF8653_TRIGGER_GLOBAL_THREAD)
 	struct k_work work;
-	const struct device *dev;
+
 #endif
 #endif /* CONFIG_PCF8653_TRIGGER */
 

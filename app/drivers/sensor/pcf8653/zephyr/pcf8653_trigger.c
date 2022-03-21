@@ -1,14 +1,16 @@
-#include "pcf8653.h"
+#include <zephyr.h>
 #include <drivers/gpio.h>
 #include <drivers/i2c.h>
 #include <logging/log.h>
+
+#include "pcf8653.h"
 
 LOG_MODULE_DECLARE(pcf8653, CONFIG_SENSOR_LOG_LEVEL);
 
 static void pcf8653_gpio_callback(const struct device *dev,
 				 struct gpio_callback *cb, uint32_t pins)
 {
-	struct pcf8653_data *drv_data = dev->data;
+	struct pcf8653_data *drv_data = CONTAINER_OF(cb, struct pcf8653_data, gpio_cb);
 
 	ARG_UNUSED(pins);
 
@@ -44,12 +46,33 @@ int pcf8653_trigger_set(const struct device *dev,
 {
 	const struct pcf8653_config *cfg = dev->config;
 	struct pcf8653_data *drv_data = dev->data;
-	/*
+	int ret = 0;
+
+	if (!handler || !trig) {
+		return -EINVAL;
+	}
 	switch (trig->type) {
-		uint8_t data = _dec_to_bcd(30);
-data &= ~PCF8563_ALARM_ENABLE;
-	ret = i2c_reg_write_byte_dt(&cfg->i2c, PCF8563_ALRM_MIN_REG, data);
-	}*/
+	case SENSOR_TRIG_RTC_TIMER: {
+		uint8_t data = BIT(7) | 0x02;
+		uint8_t val = 1;
+
+		ret = i2c_reg_write_byte_dt(&cfg->i2c, PCF8563_TIMER2_REG, val);
+		if (ret) {
+			LOG_ERR("set timer counter error:%d", ret);
+		}
+		ret = i2c_reg_write_byte_dt(&cfg->i2c, PCF8563_TIMER1_REG, data);
+		if (ret) {
+			LOG_ERR("set timer error:%d", ret);
+		}
+		drv_data->timer_handler = handler;
+		drv_data->timer_trigger = *trig;
+		break;
+	}
+	default:
+		break;
+	}
+
+	return ret;
 }
 
 int pcf8653_interrupt_init(const struct device *dev)
@@ -78,7 +101,7 @@ int pcf8653_interrupt_init(const struct device *dev)
 		return ret;
 	}
 
-	ret = gpio_pin_interrupt_configure_dt(&cfg->int_gpio, GPIO_INT_EDGE_FALLING);
+	ret = gpio_pin_interrupt_configure_dt(&cfg->int_gpio, GPIO_INT_EDGE_TO_ACTIVE);
 	if (ret < 0) {
 		return ret;
 	}
