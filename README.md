@@ -1,4 +1,6 @@
 ###
+Health is more than everything!
+
 This project is foucus on Pebble health API using bma423 Accelerameter, you could see more Pebble health API via
 https://developer.rebble.io/developer.pebble.com/docs/c/Foundation/Event_Service/HealthService/index.html
 
@@ -10,7 +12,7 @@ step 3.2 "Get the Zephyr source code". Here you should run the commands below
 instead of the ones in the guide:
 
 ```
-$ git clone https://gitee.com/fwatch/twatch
+$ git clone --recursive https://gitee.com/fwatch/twatch
 $ cd twatch
 $ west init -l app/
 $ west update # update modules
