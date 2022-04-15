@@ -24,15 +24,16 @@
 #define PCF8563_TIMER2_REG      (0x0F)
 
 #define PCF8563_VOL_LOW_MASK    (0x80)
-#define PCF8563_SENCONDS_MASK   (0x3F)
+#define PCF8563_SENCONDS_MASK   (0x7F)
 #define PCF8563_MINUTES_MASK    (0x7F)
 #define PCF8563_HOUR_MASK       (0x3F)
 #define PCF8563_WEEKDAY_MASK    (0x07)
 #define PCF8563_CENTURY_MASK    (0x80)
 #define PCF8563_DAY_MASK        (0x3F)
 #define PCF8563_MONTH_MASK      (0x1F)
-#define PCF8563_TIMER_CTL_MASK  (0x03)
+#define PCF8563_TIMER_CTL_MASK  (0x83)
 
+#define PCF8653_TI_TP           (0x10)
 #define PCF8563_ALARM_AF        (0x08)
 #define PCF8563_TIMER_TF        (0x04)
 #define PCF8563_ALARM_AIE       (0x02)

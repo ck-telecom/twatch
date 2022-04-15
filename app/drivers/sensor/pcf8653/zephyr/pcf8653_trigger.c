@@ -29,6 +29,9 @@ static void pcf8653_thread_cb(const struct device *dev)
 	int ret = 0;
 
 	ret = i2c_reg_read_byte_dt(&cfg->i2c, PCF8563_STAT2_REG, &val);
+	if (ret) {
+		LOG_ERR("read STAT2 error");
+	}
 	if (val & PCF8563_ALARM_AF && drv_data->alarm_handler) {
 		drv_data->alarm_handler(dev, &drv_data->alarm_trigger);
 	}
@@ -40,6 +43,31 @@ static void pcf8653_thread_cb(const struct device *dev)
 				     PCF8563_ALARM_AF | PCF8563_TIMER_TF);
 }
 
+#ifdef CONFIG_PCF8653_TRIGGER_OWN_THREAD
+static void pcf8653_thread(int dev_ptr, int unused)
+{
+	struct device *dev = INT_TO_POINTER(dev_ptr);
+	struct pcf8653_data *drv_data = dev->data;
+
+	ARG_UNUSED(unused);
+
+	while (1) {
+		k_sem_take(&drv_data->gpio_sem, K_FOREVER);
+		pcf8653_thread_cb(dev);
+	}
+}
+#endif
+
+#ifdef CONFIG_PCF8653_TRIGGER_GLOBAL_THREAD
+static void pcf8653_work_cb(struct k_work *work)
+{
+	struct pcf8653_data *drv_data =
+		CONTAINER_OF(work, struct pcf8653_data, work);
+
+	pcf8653_thread_cb(drv_data->dev);
+}
+#endif
+
 int pcf8653_trigger_set(const struct device *dev,
 			const struct sensor_trigger *trig,
 			sensor_trigger_handler_t handler)
@@ -47,10 +75,15 @@ int pcf8653_trigger_set(const struct device *dev,
 	const struct pcf8653_config *cfg = dev->config;
 	struct pcf8653_data *drv_data = dev->data;
 	int ret = 0;
-
+	uint8_t val = 0;
 	if (!handler || !trig) {
 		return -EINVAL;
 	}
+
+	ret = i2c_reg_read_byte_dt(&cfg->i2c, PCF8563_STAT2_REG, &val);
+	ret = i2c_reg_update_byte_dt(&cfg->i2c, PCF8563_STAT2_REG,
+				     PCF8563_ALARM_AF | PCF8563_TIMER_TF,
+				     PCF8563_ALARM_AF | PCF8563_TIMER_TF);
 	switch (trig->type) {
 	case SENSOR_TRIG_RTC_TIMER: {
 		uint8_t data = BIT(7) | 0x02;
@@ -60,7 +93,7 @@ int pcf8653_trigger_set(const struct device *dev,
 		if (ret) {
 			LOG_ERR("set timer counter error:%d", ret);
 		}
-		ret = i2c_reg_write_byte_dt(&cfg->i2c, PCF8563_TIMER1_REG, data);
+		ret = i2c_reg_update_byte_dt(&cfg->i2c, PCF8563_TIMER1_REG, PCF8563_TIMER_CTL_MASK, data);
 		if (ret) {
 			LOG_ERR("set timer error:%d", ret);
 		}
@@ -107,8 +140,24 @@ int pcf8653_interrupt_init(const struct device *dev)
 	}
 
 	ret = i2c_reg_update_byte_dt(&cfg->i2c, PCF8563_STAT2_REG,
-				     PCF8563_ALARM_AIE | PCF8563_TIMER_TIE,
-				     PCF8563_ALARM_AIE | PCF8563_TIMER_TIE);
+				     PCF8563_ALARM_AIE | PCF8563_TIMER_TIE | PCF8653_TI_TP,
+				     PCF8563_ALARM_AIE | PCF8563_TIMER_TIE | PCF8653_TI_TP);
+	if (ret < 0) {
+		LOG_ERR("Could not enable int");
+		return ret;
+	}
 
+#if defined(CONFIG_PCF8653_TRIGGER_OWN_THREAD)
+	k_sem_init(&drv_data->gpio_sem, 0, UINT_MAX);
+
+	k_thread_create(&drv_data->thread, drv_data->thread_stack,
+			CONFIG_PCF8653_THREAD_STACK_SIZE,
+			(k_thread_entry_t)pcf8653_thread, dev,
+			0, NULL, K_PRIO_COOP(CONFIG_PCF8653_THREAD_PRIORITY),
+			0, K_NO_WAIT);
+#elif defined(CONFIG_PCF8653_TRIGGER_GLOBAL_THREAD)
+	drv_data->work.handler = pcf8653_work_cb;
+	drv_data->dev = dev;
+#endif
 	return ret;
 }
