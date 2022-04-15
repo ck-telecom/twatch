@@ -15,6 +15,7 @@
 		uart-0 = &uart0;
 		i2c-0 = &i2c0;
 		kscan0 = &ft5336;
+		vibe = &vibe;
 	};
 
 	chosen {
@@ -23,5 +24,13 @@
 		zephyr,shell-uart = &uart0;
 		zephyr,flash = &flash0;
 		zephyr,display = &st7789v;
+	};
+
+	vibes {
+		compatible = "gpio-keys";
+		vibe: vibe {
+			gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
+			label = "vibe";
+		};
 	};
 };

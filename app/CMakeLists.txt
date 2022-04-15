@@ -14,6 +14,8 @@ project(twatch_v3 VERSION 0.0.1)
 
 zephyr_include_directories(include)
 
+add_subdirectory(src/vibes)
+
 target_sources(app PRIVATE src/main.c)
 target_sources(app PRIVATE src/bma4xx.c)
 
