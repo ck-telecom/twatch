@@ -6,10 +6,8 @@
 #include "event_service.h"
 #include "event_service_mem.h"
 
-#include "msg_def.h"
-
-#define EVENT_MALLOC
-#define EVENT_FREE
+#define EVENT_MALLOC app_alloc
+#define EVENT_FREE app_free
 
 LOG_MODULE_REGISTER(event_service, LOG_LEVEL_INF);
 

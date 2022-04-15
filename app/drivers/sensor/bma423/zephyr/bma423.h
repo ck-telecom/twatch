@@ -11,6 +11,7 @@
 #include <sys/util.h>
 #include <zephyr/types.h>
 #include <drivers/gpio.h>
+#include <drivers/i2c.h>
 
 #include "bma4_defs.h"
 

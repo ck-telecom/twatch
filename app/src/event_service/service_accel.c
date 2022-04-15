@@ -132,16 +132,16 @@ void accel_data_service_subscribe(uint32_t samples_per_update, AccelDataHandler 
 	//(void)sensor_value_from_double(&setting, (double)samples_per_update);
 
 	sensor_attr_set(accel_dev, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_FIFO_WM, &setting);
-	event_service_subscribe_with_context(GX_EVENT_ACCEL_SERVICE, accel_data_service_cb, handler);
+	event_service_subscribe_with_context(EventServiceCommandAccelData, accel_data_service_cb, handler);
 }
 
 void accel_data_service_unsubscribe(void)
 {
-	void *context = event_service_get_context(GX_EVENT_ACCEL_SERVICE);
+	void *context = event_service_get_context(EventServiceCommandAccelData);
 	if (context)
 		app_free(context);
 
-	event_service_unsubscribe(GX_EVENT_ACCEL_SERVICE);
+	event_service_unsubscribe(EventServiceCommandAccelData);
 }
 
 void accel_tap_service_subscribe(AccelTapHandler handler)
