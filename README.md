@@ -12,15 +12,23 @@ step 3.2 "Get the Zephyr source code". Here you should run the commands below
 instead of the ones in the guide:
 
 ```
-$ git clone --recursive https://gitee.com/fwatch/twatch
+$ git clone --recursive https://github.com/ck-telecom/twatch.git
 $ cd twatch
 $ west init -l app/
 $ west update # update modules
 $ west espressif update # update submodules
 ```
 
-Then complete the remaining steps under section 3 and 4. Finally, run `make
-tools`.
+### Software
+- [ ] AppMessage
+- [ ] AppWorker
+- [ ] Event Service
+- [ ] Timer
+- [ ] Storage
+- [x] Vibes
+
+### Hardware
+esp32 based Ligo twatch v3
 
 ### Build and flash twatch
 
