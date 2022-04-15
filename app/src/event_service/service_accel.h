@@ -9,6 +9,14 @@ typedef struct accel_data {
 	uint64_t timestamp;
 } AccelData;
 
+typedef struct accel_raw_data {
+	int16_t x;
+	int16_t y;
+	int16_t z;
+	bool did_vibrate;
+	uint64_t timestamp;
+} AccelRawData;
+
 typedef enum accel_axis_type {
 	ACCEL_AXIS_X,
 	ACCEL_AXIS_Y,
@@ -25,11 +33,6 @@ typedef enum accel_sampling_rate {
 typedef void (* AccelDataHandler)(AccelData *data, uint32_t num_samples);
 typedef void (* AccelRawDataHandler)(AccelRawData *data, uint32_t num_samples, uint64_t timestamp);
 typedef void (* AccelTapHandler)(AccelAxisType axis, int32_t direction);
-
-struct accel_data_service_context {
-	uint32_t samples_per_update;
-	accel_data_handler_t handler;
-};
 
 int accel_service_peek(AccelData *data);
 

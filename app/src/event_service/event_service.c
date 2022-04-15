@@ -1,6 +1,6 @@
 #include <zephyr.h>
 #include <sys/slist.h>
-
+#include <logging/log.h>
 #include <stdbool.h>
 
 #include "event_service.h"
@@ -10,6 +10,9 @@
 
 #define EVENT_MALLOC
 #define EVENT_FREE
+
+LOG_MODULE_REGISTER(event_service, LOG_LEVEL_INF);
+
 
 typedef struct event_service_subscriber {
 	uint32_t command;
@@ -22,7 +25,7 @@ typedef struct event_service_subscriber {
 K_MUTEX_DEFINE(event_list_mutex);
 
 static sys_slist_t event_list_head = SYS_SLIST_STATIC_INIT(&event_list_head);
-#if 1
+
 void event_service_subscribe(uint32_t command, event_service_callback_t callback)
 {
 	event_service_subscriber_t *conn = app_alloc(sizeof(event_service_subscriber_t));
@@ -127,8 +130,8 @@ void event_service_event_trigger(uint32_t command, void *data)
 
 	SYS_SLIST_FOR_EACH_CONTAINER(&event_list_head, conn, node) {
 		if (conn->command == command) {
-			//LOG_INFO("Triggering %x %x %x", data, destroy, conn->callback);
-			if (conn->thread == _this_thread && conn->callback) {
+			LOG_DBG("Triggering %x %x", command, conn->command);
+			if (/*conn->thread == _this_thread && */conn->callback) {
 				conn->callback(command, data, conn->context);
 			}
 		}
@@ -136,4 +139,4 @@ void event_service_event_trigger(uint32_t command, void *data)
 
 	k_mutex_unlock(&event_list_mutex);
 }
-#endif
+
