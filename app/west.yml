@@ -21,6 +21,12 @@ manifest:
       groups:
         - hal
 
+    - name: littlefs
+      path: modules/fs/littlefs
+      groups:
+        - fs
+      revision: 7b2cf4ba759bd530b543644e2790b07cf20cd6aa
+
     - name: tinycrypt
       revision: 3e9a49d2672ec01435ffbf0d788db6d95ef28de0
       path: modules/crypto/tinycrypt
