@@ -209,5 +209,11 @@
 			label = "storage";
 			reg = <0x00250000 0x00006000>;
 		};
+
+		/* rdb in last 1MB */
+		rdb_partition: partition@256000 {
+			label = "rdb";
+			reg = <0x00256000 0x100000>;
+		};
 	};
 };
