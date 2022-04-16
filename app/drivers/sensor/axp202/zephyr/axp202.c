@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: Apache-2.0
  */
-#define DT_DRV_COMPAT xpower_axp202
+#define DT_DRV_COMPAT xpowers_axp202
 
 #include <zephyr.h>
 #include <logging/log.h>
@@ -10,13 +10,12 @@
 
 #include "axp202.h"
 
-
-LOG_MODULE_REGISTER(AXP202, CONFIG_SENSOR_LOG_LEVEL);
+LOG_MODULE_REGISTER(axp202, CONFIG_SENSOR_LOG_LEVEL);
 
 static int axp202_sample_fetch(const struct device *dev, enum sensor_channel chan)
 {
 	struct axp202_data *data = dev->data;
-	struct axp202_config *config = dev->config;
+	const struct axp202_config *config = dev->config;
 	int err = 0;
 
 	switch (chan) {
@@ -58,9 +57,9 @@ static int axp202_channel_get(const struct device *dev, enum sensor_channel chan
 	case SENSOR_CHAN_CURRENT:
 		val->val1 = data->cur;
 		break;
-	
+
 	default:
-		err = -ENOSETUP;
+		err = -ENOTSUP;
 	}
 
 	return err;
@@ -80,12 +79,14 @@ static const struct sensor_driver_api axp202_driver_api = {
 	.attr_set = axp202_attr_set,
 };
 
-static int axp202_init(const const struct device *dev)
+static int axp202_init(const struct device *dev)
 {
 	struct axp202_data *data = dev->data;
-	struct axp202_config *config = dev->config;	
+	const struct axp202_config *config = dev->config;
 	uint8_t id;
 	int err = 0;
+
+	data->dev = dev;
 
 	err = i2c_reg_read_byte_dt(&config->i2c, AXP202_IC_TYPE, &id);
 	if (err < 0) {
@@ -97,6 +98,14 @@ static int axp202_init(const const struct device *dev)
 		return -ENODEV;
 	}
 
+#if CONFIG_AXP202_TRIGGER
+	err = axp202_interrupt_init(dev);
+	if (err) {
+		LOG_ERR("interrupt init error: %d", err);
+		return err;
+	}
+#endif
+	LOG_INF("axp202 init done");
 	return err;
 }
 
@@ -104,9 +113,10 @@ static int axp202_init(const const struct device *dev)
 	static struct axp202_data axp202_data_##index;                      \
 	static const struct axp202_config axp202_config_##index = {         \
 		.i2c = I2C_DT_SPEC_INST_GET(index),                         \
+		COND_CODE_1(CONFIG_AXP202_TRIGGER,                          \
 		(.int_gpio = GPIO_DT_SPEC_INST_GET(index, int_gpios)), ())  \
 	};                                                                  \
-	DEVICE_DT_INST_DEFINE(index, axp202_init,                           \
+	DEVICE_DT_INST_DEFINE(index, axp202_init, NULL,                     \
 		&axp202_data_##index, &axp202_config_##index, POST_KERNEL,  \
 		CONFIG_SENSOR_INIT_PRIORITY, &axp202_driver_api);
 

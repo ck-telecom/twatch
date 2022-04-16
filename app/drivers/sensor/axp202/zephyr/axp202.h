@@ -1,41 +1,17 @@
-/* Copyright (c) 2022 Qingsong Gou <gouqs@hotmail.com>
- *
+/*
+ * Copyright (c) 2022 Qingsong Gou <gouqs@hotmail.com>
  * SPDX-License-Identifier: Apache-2.0
  */
-#ifndef PINETIME_INCLUDE_AXP202_H
-#define PINETIME_INCLUDE_AXP202_H
+#ifndef _AXP202_H
+#define _AXP202_H
 
 #include <device.h>
+#include <drivers/gpio.h>
+#include <drivers/i2c.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-enum hrs3300_hwt {
-	HRS3300_HWT_800MS = 0x0,
-	HRS3300_HWT_400MS = 0x1,
-	HRS3300_HWT_200MS = 0x2,
-	HRS3300_HWT_100MS = 0x3,
-	HRS3300_HWT_75MS = 0x4,
-	HRS3300_HWT_50MS = 0x5,
-	HRS3300_HWT_12_5MS = 0x6,
-	HRS3300_HWT_0MS = 0x7
-};
-
-enum hrs3300_pdrive {
-	HRS3300_PDRIVE_12_5 = 0,
-	HRS3300_PDRIVE_20 = 1,
-	HRS3300_PDRIVE_30 = 2,
-	HRS3300_PDRIVE_40 = 3
-};
-
-enum hrs3300_hgain {
-	HRS3300_HGAIN_1 = 0,
-	HRS3300_HGAIN_2 = 1,
-	HRS3300_HGAIN_4 = 2,
-	HRS3300_HGAIN_8 = 3,
-	HRS3300_HGAIN_64 = 4,
-};
 
 #define AXP202_CHIP_ID 0x41
 
@@ -236,90 +212,38 @@ enum hrs3300_hgain {
 #define AXP202_TS_PIN_OUT_STEP (0.8F)
 #define AXP202_GPIO0_STEP (0.5F)
 #define AXP202_GPIO1_STEP (0.5F)
-/** @brief Enable measurement.
- *
- * @param dev Device.
- *
- * @return 0 on suucess, negative error code otherwise.
- */
-int hrs3300_enable(struct device *dev);
 
-/** @brief Disable measurement.
- *
- * @param dev Device.
- *
- * @return 0 on suucess, negative error code otherwise.
- */
-int hrs3300_disable(struct device *dev);
+struct axp202_data {
+	const struct device *dev;
+	uint16_t vol;
+	uint16_t cur;
+#ifdef CONFIG_AXP202_TRIGGER
+	struct gpio_callback gpio_cb;
 
+#if defined(CONFIG_AXP202_TRIGGER_OWN_THREAD)
+	K_THREAD_STACK_MEMBER(thread_stack, CONFIG_AXP202_THREAD_STACK_SIZE);
+	struct k_thread thread;
+	struct k_sem gpio_sem;
+#elif defined(CONFIG_AXP202_TRIGGER_GLOBAL_THREAD)
+	struct k_work work;
+#endif
 
-/** @brief Set hgain.
- *
- * @param dev Device.
- * @param val Hgain.
- *
- * @return 0 on suucess, negative error code otherwise.
- */
-int hrs3300_hgain_set(struct device *dev, enum hrs3300_hgain val);
-
-
-/** @brief Get hgain.
- *
- * @param dev Device.
- * @param val Location to store hgain.
- *
- * @return 0 on suucess, negative error code otherwise.
- */
-int hrs3300_hgain_get(struct device *dev, enum hrs3300_hgain *val);
-
-/** @brief Set HWT.
- *
- * @param dev Device.
- * @param val Gain.
- *
- * @return 0 on suucess, negative error code otherwise.
- */
-int hrs3300_hwt_set(struct device *dev, enum hrs3300_hwt val);
-
-/** @brief Get HWT.
- *
- * @param dev Device.
- * @param val Location to store HWT.
- *
- * @return 0 on suucess, negative error code otherwise.
- */
-int hrs3300_hwt_get(struct device *dev, enum hrs3300_hwt *val);
-
-/** @brief Set PDrive.
- *
- * @param dev Device.
- * @param val Gain.
- *
- * @return 0 on suucess, negative error code otherwise.
- */
-int hrs3300_pdrive_set(struct device *dev, enum hrs3300_pdrive val);
-
-/** @brief Get PDrive.
- *
- * @param dev Device.
- * @param val Location to store PDrive.
- *
- * @return 0 on suucess, negative error code otherwise.
- */
-int hrs3300_pdrive_get(struct device *dev, enum hrs3300_pdrive *val);
-
-struct hrs3300_data {
-
-	u32_t raw[2];
-	struct hrs3300_addr_reg config[4];
+#endif /* CONFIG_AXP202_TRIGGER */
 };
 
 struct axp202_config {
-	struct i2c_dt_spec i2c;	
+	struct i2c_dt_spec i2c;
+#if CONFIG_AXP202_TRIGGER
+	const struct gpio_dt_spec int_gpio;
+#endif /* CONFIG_AXP202_TRIGGER */
 };
+
+#ifdef CONFIG_AXP202_TRIGGER
+int axp202_interrupt_init(const struct device *dev);
+#endif
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* PINETIME_INCLUDE_HRS3300_H */
+#endif /* _AXP202_H */

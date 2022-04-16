@@ -10,4 +10,6 @@ rsource "bma423/Kconfig"
 
 rsource "pcf8653/Kconfig"
 
+rsource "axp202/Kconfig"
+
 endif # SENSOR

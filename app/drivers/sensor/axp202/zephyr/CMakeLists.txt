@@ -6,4 +6,4 @@ zephyr_library()
 zephyr_include_directories(.)
 
 zephyr_library_sources(axp202.c)
-#zephyr_library_sources_ifdef(CONFIG_AXP202_TRIGGER hrs3300.c)
+zephyr_library_sources_ifdef(CONFIG_AXP202_TRIGGER axp202_trigger.c)
