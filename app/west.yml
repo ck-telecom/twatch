@@ -27,6 +27,10 @@ manifest:
         - fs
       revision: 7b2cf4ba759bd530b543644e2790b07cf20cd6aa
 
+    - name: lvgl
+      revision: a2e17073e5208c221e24e3c2b3b6c473e878bd1e
+      path: modules/lib/gui/lvgl
+
     - name: tinycrypt
       revision: 3e9a49d2672ec01435ffbf0d788db6d95ef28de0
       path: modules/crypto/tinycrypt
